@@ -49,6 +49,11 @@ def run_etl(input_file, output_file):
       }
       cleaned_data.append(clean_row)
 
+  # Check if "cleaned_data" list is empty
+  if not cleaned_data:
+    print("No data was processed. Output file will not be created.")
+    return
+
   keys = cleaned_data[0].keys()
   with open(output_file, "w", newline="") as f_out:
     # Use "fieldnames=keys" to make sure the columns are correct
