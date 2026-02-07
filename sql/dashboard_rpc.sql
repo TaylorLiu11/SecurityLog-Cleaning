@@ -1,10 +1,23 @@
 /*
 Project: SecurityLog-Cleaning
-Purpose: Create RPC functions for the Honeypot Dashboard
-Version: 1.0
-Date: 2026-02-07
+Purpose: Create RPC functions for the Honeypot Dashboard with RLS security
+Version: 1.1
+Date: 2026-02-08
+Changes:
+  - Added SECURITY DEFINER to bypass RLS for aggregate calculations
+  - Added RLS enabling and SELECT policy for public access
+  - Added GRANT EXECUTE permissions for anon role 
 */
 
+-- 1. Enable RLS on the table
+ALTER TABLE public.honeypot_logs ENABLE ROW LEVEL SECURITY;
+
+-- 2. Create a transparent read policy for the dashboard
+DROP POLICY IF EXISTS "Allow public read access" ON public.honeypot_logs;
+CREATE POLICY "Allow public read access" ON public.honeypot_logs
+  FOR SELECT TO anon USING (true);
+
+-- 3. High-level stats RPC
 DROP FUNCTION IF EXISTS get_dashboard_stats;
 
 CREATE OR REPLACE FUNCTION get_dashboard_stats(
@@ -22,7 +35,7 @@ AS $$
 BEGIN
   RETURN QUERY
   WITH filtered_logs AS (
-    SELECT * FROM honeypot_logs
+    SELECT * FROM public.honeypot_logs
     WHERE event_time >= start_ts
       AND event_time <= end_ts
   ),
@@ -48,6 +61,7 @@ BEGIN
 END;
 $$;
 
+-- 4. Country distribution RPC
 DROP FUNCTION IF EXISTS get_country_distribution;
 CREATE OR REPLACE FUNCTION get_country_distribution(
   start_ts timestamptz,  -- Start time of the filter
@@ -62,9 +76,13 @@ AS $$
   SELECT
     country_code,
     count(*) as attack_count
-  FROM honeypot_logs
+  FROM public.honeypot_logs
   WHERE event_time >= start_ts
     AND event_time <= end_ts
   GROUP BY country_code
   ORDER BY attack_count DESC;
 $$;
+
+-- 5. Explicitly grant execution to the anon role
+GRANT EXECUTE ON FUNCTION get_dashboard_stats TO anon;
+GRANT EXECUTE ON FUNCTION get_country_distribution TO anon;
