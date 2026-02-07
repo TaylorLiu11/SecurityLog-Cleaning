@@ -55,6 +55,14 @@ def run_etl(input_file, output_file):
     return
 
   keys = cleaned_data[0].keys()
+
+  output_dir = os.path.dirname(output_file)
+
+  # Check if the output file path exists, create directory if not.
+  if not os.path.exists(output_file):
+    os.makedirs(output_dir)
+    print(f"Missing directory created: {output_dir}")
+
   with open(output_file, "w", newline="") as f_out:
     # Use "fieldnames=keys" to make sure the columns are correct
     dict_writer = csv.DictWriter(f_out, fieldnames=keys)
