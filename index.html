@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Honeypot Attack Dashboard</title>
+
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- ECharts.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+  <!-- Header -->
+  <header class="bg-gray-800 shadow-lg">
+    <div class="container mx-auto px-4 py-6">
+      <h1 class="text-3xl font-bold text-blue-400">🛡️ Honeypot Attack Dashboard</h1>
+      <p class="text-gray-400 mt-2">Real-time visualization of global cyber attacks</p>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container mx-auto px-4 py-8">
+    <!-- Filters Section -->
+    <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-100 mb-4">📊 Filters</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Time Range Selector -->
+        <div>
+          <label class="block text-gray-300 font-semibold mb-2">⏰ Time Range</label>
+          <div class="space-y-2">
+            <input type="datetime-local" id="startDate" class="w-full bg-gray-700 text-gray-100 rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:border-blue-400" placeholder="Start Date">
+            <input type="datetime-local" id="endDate" class="w-full bg-gray-700 text-gray-100 rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:border-blue-400" placeholder="End Date">
+          </div>
+        </div>
+
+        <!-- Risk Level Selector -->
+        <div>
+          <label class="block text-gray-300 font-semibold mb-2">⚠️ Risk Level (Pie Chart Filter)</label>
+          <div class="space-y-3">
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input type="checkbox" id="riskHigh" class="w-5 h-5 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500" checked>
+              <span class="text-red-400 font-medium">High Risk</span>
+            </label>
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input type="checkbox" id="riskLow" class="w-5 h-5 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500" checked>
+              <span class="text-green-400 font-medium">Low Risk</span>
+            </label>
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input type="checkbox" id="riskUnknown" class="w-5 h-5 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500" checked>
+              <span class="text-gray-400 font-medium">Unknown Risk</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Apply Filters Button -->
+      <div class="mt-6">
+        <button id="applyFilters" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition duration-200 shadow-lg">
+          Apply Filters
+        </button>
+        <button id="resetFilters" class="w-full md:w-auto bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg transition duration-200 shadow-lg ml-0 md:ml-4 mt-2 md:mt-0">
+          Reset Filters
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <!-- Total Attacks -->
+      <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-400 text-sm">Total Attacks</p>
+            <p id="totalAttacks" class="text-3xl font-bold text-blue-400">-</p>
+          </div>
+          <div class="text-blue-400 text-4xl">🎯</div>
+        </div>
+      </div>
+
+      <!-- Unique Countries -->
+      <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-400 text-sm">Unique Countries</p>
+            <p id="uniqueCountries" class="text-3xl font-bold text-green-400">-</p>
+          </div>
+          <div class="text-green-400 text-4xl">🌍</div>
+        </div>
+      </div>
+
+      <!-- Top Protocol -->
+      <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-400 text-sm">Top Protocol</p>
+            <p id="topProtocol" class="text-3xl font-bold text-yellow-400">-</p>
+          </div>
+          <div class="text-yellow-400 text-4xl">🔌</div>
+        </div>
+      </div>
+
+      <!-- High Risk Attacks -->
+      <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-400 text-sm">High Risk</p>
+            <p id="highRiskCount" class="text-3xl font-bold text-red-400">-</p>
+          </div>
+          <div class="text-red-400 text-4xl">⚠️</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="text-center py-8">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-400"></div>
+      <p class="text-gray-400 mt-4">Loading attack data...</p>
+    </div>
+
+    <!-- Charts Container -->
+    <div id="chartContainer" class="hidden">
+      <!-- Risk Level Pie Chart -->
+      <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-100 mb-4">📊 Attack Risk Distribution</h2>
+        <div id="riskPieChart" class="w-full" style="height: 400px;"></div>
+      </div>
+
+      <!-- Top 10 Attack Origin Countries -->
+      <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-100 mb-4">🌍 Top 10 Attack Origin Countries</h2>
+        <div id="countriesBarChart" class="w-full" style="height: 500px;"></div>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="hidden bg-red-900 border border-red-700 rounded-lg p-6 text-center">
+      <p class="text-xl font-bold text-red-400 mb-2">⚠️ Error Loading Data</p>
+      <p id="errorText" class="text-gray-300"></p>
+      <p class="text-gray-400 mt-4 text-sm">Please check your Supabase configuration in the browser console.</p>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 mt-12">
+    <div class="container mx-auto px-4 py-6 text-center text-gray-400">
+      <p>🔒 Honeypot Security Dashboard | Data updated in real-time</p>
+    </div>
+  </footer>
+
+  <script>
+    // ====================================
+    // Configuration
+    // ====================================
+    // IMPORTANT: Replace these with your actual Supabase credentials
+    const SUPABASE_URL = 'https://xsuqvnouwlraqwflpoqv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzdXF2bm91d2xyYXF3Zmxwb3F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMjE1NjMsImV4cCI6MjA4NTg5NzU2M30.IDI5fhUECux2a5ve8TN4d-z5X9AObzrPz2-HKmm0yFs';
+
+    // Initialize Supabase client
+    const supabase_client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Global variables
+    let countriesBarChart = null;
+    let riskPieChart = null;
+    let currentStats = null;
+    let currentCountryData = null;
+
+    // ====================================
+    // UI Event Handlers
+    // ====================================
+    function setupEventListeners() {
+      // Apply filters button
+      document.getElementById('applyFilters').addEventListener('click', applyFilters);
+
+      // Reset filters button
+      document.getElementById('resetFilters').addEventListener('click', resetFilters);
+
+      // Risk level checkboxes - update pie chart when changed
+      const riskCheckboxes = ['riskHigh', 'riskLow', 'riskUnknown'];
+      riskCheckboxes.forEach(id => {
+        document.getElementById(id).addEventListener('change', () => {
+          if (currentStats && currentStats.risk_breakdown) {
+            updateRiskPieChart(currentStats.risk_breakdown);
+          }
+        });
+      });
+    }
+
+    function resetFilters() {
+      // Reset time range
+      document.getElementById('startDate').value = '';
+      document.getElementById('endDate').value = '';
+
+      // Reset risk levels
+      document.getElementById('riskHigh').checked = true;
+      document.getElementById('riskLow').checked = true;
+      document.getElementById('riskUnknown').checked = true;
+
+      // Reapply with no filters
+      applyFilters();
+    }
+
+    // ====================================
+    // Data Fetching (Using RPC Functions)
+    // ====================================
+    async function fetchDashboardStats(startTime, endTime) {
+      try {
+        console.log('Fetching dashboard stats from RPC...');
+
+        const { data, error } = await supabase_client
+          .rpc('get_dashboard_stats', {
+            start_ts: startTime,
+            end_ts: endTime
+          });
+
+        if (error) {
+          throw error;
+        }
+
+        console.log('Dashboard stats fetched:', data);
+        return data[0]; // RPC returns array with single row
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        throw error;
+      }
+    }
+
+    async function fetchCountryDistribution(startTime, endTime) {
+      try {
+        console.log('Fetching country distribution from RPC...');
+
+        const { data, error } = await supabase_client
+          .rpc('get_country_distribution', {
+            start_ts: startTime,
+            end_ts: endTime
+          });
+
+        if (error) {
+          throw error;
+        }
+
+        console.log(`Country distribution fetched: ${data.length} countries`);
+        return data;
+      } catch (error) {
+        console.error('Error fetching country distribution:', error);
+        throw error;
+      }
+    }
+
+    // ====================================
+    // Time Range Calculation
+    // ====================================
+    function getTimeRange() {
+      // Custom duration filter
+      const startDateValue = document.getElementById('startDate').value;
+      const endDateValue = document.getElementById('endDate').value;
+
+      const startTime = startDateValue ? new Date(startDateValue) : new Date('1970-01-01');
+      const endTime = endDateValue ? new Date(endDateValue) : new Date();
+
+      return {
+        start: startTime.toISOString(),
+        end: endTime.toISOString()
+      };
+    }
+
+    async function applyFilters() {
+      try {
+        // Show loading
+        document.getElementById('loadingIndicator').classList.remove('hidden');
+        document.getElementById('chartContainer').classList.add('hidden');
+
+        // Get time range
+        const timeRange = getTimeRange();
+
+        // Fetch data from RPC functions
+        const [stats, countryData] = await Promise.all([
+          fetchDashboardStats(timeRange.start, timeRange.end),
+          fetchCountryDistribution(timeRange.start, timeRange.end)
+        ]);
+
+        // Store data globally
+        currentStats = stats;
+        currentCountryData = countryData;
+
+        // Update UI
+        updateStats(stats);
+        updateRiskPieChart(stats.risk_breakdown);
+        updateCountriesBarChart(countryData);
+
+        // Show charts
+        showCharts();
+      } catch (error) {
+        showError(`Failed to apply filters: ${error.message}`);
+        console.error('Filter application error:', error);
+      }
+    }
+
+    // ====================================
+    // Data Processing Helpers
+    // ====================================
+    function getCountryName(countryCode) {
+      try {
+        const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+        return regionNames.of(countryCode) || countryCode;
+      } catch (error) {
+        console.warn(`Failed to get country name for ${countryCode}:`, error);
+        return countryCode;
+      }
+    }
+
+    function getSelectedRiskLevels() {
+      const selected = [];
+      if (document.getElementById('riskHigh').checked) selected.push('high', 'High');
+      if (document.getElementById('riskLow').checked) selected.push('low', 'Low');
+      if (document.getElementById('riskUnknown').checked) selected.push('unknown', 'Unknown');
+      return selected;
+    }
+
+    function filterRiskBreakdown(riskBreakdown) {
+      if (!riskBreakdown) return {};
+
+      const selectedRisks = getSelectedRiskLevels();
+      const filtered = {};
+
+      for (const [key, value] of Object.entries(riskBreakdown)) {
+        const normalizedKey = (key || 'Unknown').toLowerCase();
+        if (selectedRisks.some(r => r.toLowerCase() === normalizedKey)) {
+          filtered[key] = value;
+        }
+      }
+
+      return filtered;
+    }
+
+    // ====================================
+    // UI Updates
+    // ====================================
+    function updateStats(stats) {
+      // Use server-calculated values directly
+      document.getElementById('totalAttacks').textContent =
+        (stats.total_attacks || 0).toLocaleString();
+      document.getElementById('uniqueCountries').textContent =
+        stats.unique_countries || 0;
+      document.getElementById('topProtocol').textContent =
+        stats.top_protocol || 'N/A';
+
+      // Calculate high risk count from risk_breakdown JSON
+      const highRiskCount = (stats.risk_breakdown?.high || stats.risk_breakdown?.High || 0);
+      document.getElementById('highRiskCount').textContent =
+        highRiskCount.toLocaleString();
+    }
+
+    function showError(message) {
+      document.getElementById('loadingIndicator').classList.add('hidden');
+      document.getElementById('errorMessage').classList.remove('hidden');
+      document.getElementById('errorText').textContent = message;
+    }
+
+    function showCharts() {
+      document.getElementById('loadingIndicator').classList.add('hidden');
+      document.getElementById('chartContainer').classList.remove('hidden');
+    }
+
+    // ====================================
+    // ECharts Visualization
+    // ====================================
+    function renderRiskPieChart(riskBreakdown) {
+      const chartDom = document.getElementById('riskPieChart');
+      riskPieChart = echarts.init(chartDom);
+
+      // Filter based on selected risk levels
+      const filteredBreakdown = filterRiskBreakdown(riskBreakdown);
+
+      // Convert risk_breakdown JSON to pie chart data
+      const pieData = Object.entries(filteredBreakdown).map(([name, value]) => ({
+        name: name || 'Unknown',
+        value: value
+      }));
+
+      // Define colors for each risk level
+      const colorMap = {
+        'high': '#dc2626',
+        'High': '#dc2626',
+        'low': '#22c55e',
+        'Low': '#22c55e',
+        'unknown': '#6b7280',
+        'Unknown': '#6b7280'
+      };
+
+      const option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+          trigger: 'item',
+          formatter: '{b}: {c} ({d}%)',
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          borderColor: '#3b82f6',
+          borderWidth: 1,
+          textStyle: {
+            color: '#fff'
+          }
+        },
+        legend: {
+          orient: 'vertical',
+          right: '10%',
+          top: 'center',
+          textStyle: {
+            color: '#fff'
+          }
+        },
+        series: [
+          {
+            name: 'Risk Level',
+            type: 'pie',
+            radius: ['40%', '70%'],
+            avoidLabelOverlap: false,
+            itemStyle: {
+              borderRadius: 10,
+              borderColor: '#1f2937',
+              borderWidth: 2
+            },
+            label: {
+              show: true,
+              formatter: '{b}: {d}%',
+              color: '#fff'
+            },
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: 20,
+                fontWeight: 'bold'
+              }
+            },
+            data: pieData.map(item => ({
+              ...item,
+              itemStyle: {
+                color: colorMap[item.name] || '#6b7280'
+              }
+            }))
+          }
+        ]
+      };
+
+      riskPieChart.setOption(option);
+
+      // Make chart responsive
+      window.addEventListener('resize', () => {
+        riskPieChart.resize();
+      });
+    }
+
+    function updateRiskPieChart(riskBreakdown) {
+      if (!riskPieChart) {
+        renderRiskPieChart(riskBreakdown);
+        return;
+      }
+
+      // Filter based on selected risk levels
+      const filteredBreakdown = filterRiskBreakdown(riskBreakdown);
+
+      // Convert to pie chart data
+      const pieData = Object.entries(filteredBreakdown).map(([name, value]) => ({
+        name: name || 'Unknown',
+        value: value
+      }));
+
+      const colorMap = {
+        'high': '#dc2626',
+        'High': '#dc2626',
+        'low': '#22c55e',
+        'Low': '#22c55e',
+        'unknown': '#6b7280',
+        'Unknown': '#6b7280'
+      };
+
+      riskPieChart.setOption({
+        series: [{
+          data: pieData.map(item => ({
+            ...item,
+            itemStyle: {
+              color: colorMap[item.name] || '#6b7280'
+            }
+          }))
+        }]
+      });
+    }
+
+    function renderCountriesBarChart(countryData) {
+      const chartDom = document.getElementById('countriesBarChart');
+      countriesBarChart = echarts.init(chartDom);
+
+      // Sort by attack count and take top 10
+      const top10Countries = [...countryData]
+        .sort((a, b) => Number(b.attack_count) - Number(a.attack_count))
+        .slice(0, 10);
+
+      // Prepare data for horizontal bar chart
+      const countries = top10Countries.map(item => getCountryName(item.country_code));
+      const attackCounts = top10Countries.map(item => Number(item.attack_count));
+
+      const option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          },
+          formatter: function(params) {
+            const dataItem = params[0];
+            return `${dataItem.name}<br/>Attacks: ${dataItem.value.toLocaleString()}`;
+          },
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          borderColor: '#3b82f6',
+          borderWidth: 1,
+          textStyle: {
+            color: '#fff'
+          }
+        },
+        grid: {
+          left: '5%',
+          right: '10%',
+          bottom: '3%',
+          top: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'value',
+          axisLabel: {
+            color: '#9ca3af',
+            formatter: function(value) {
+              return value.toLocaleString();
+            }
+          },
+          splitLine: {
+            lineStyle: {
+              color: '#374151'
+            }
+          }
+        },
+        yAxis: {
+          type: 'category',
+          data: countries,
+          axisLabel: {
+            color: '#e5e7eb',
+            fontSize: 14,
+            fontWeight: 'bold'
+          },
+          axisTick: {
+            show: false
+          },
+          axisLine: {
+            lineStyle: {
+              color: '#374151'
+            }
+          }
+        },
+        series: [
+          {
+            name: 'Attack Count',
+            type: 'bar',
+            data: attackCounts,
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                { offset: 0, color: '#3b82f6' },
+                { offset: 1, color: '#60a5fa' }
+              ]),
+              borderRadius: [0, 4, 4, 0]
+            },
+            emphasis: {
+              itemStyle: {
+                color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                  { offset: 0, color: '#2563eb' },
+                  { offset: 1, color: '#3b82f6' }
+                ])
+              }
+            },
+            label: {
+              show: true,
+              position: 'right',
+              color: '#e5e7eb',
+              formatter: function(params) {
+                return params.value.toLocaleString();
+              }
+            }
+          }
+        ]
+      };
+
+      countriesBarChart.setOption(option);
+
+      // Make chart responsive
+      window.addEventListener('resize', () => {
+        countriesBarChart.resize();
+      });
+    }
+
+    function updateCountriesBarChart(countryData) {
+      if (!countriesBarChart) {
+        renderCountriesBarChart(countryData);
+        return;
+      }
+
+      // Sort by attack count and take top 10
+      const top10Countries = [...countryData]
+        .sort((a, b) => Number(b.attack_count) - Number(a.attack_count))
+        .slice(0, 10);
+
+      // Prepare data for horizontal bar chart
+      const countries = top10Countries.map(item => getCountryName(item.country_code));
+      const attackCounts = top10Countries.map(item => Number(item.attack_count));
+
+      countriesBarChart.setOption({
+        yAxis: {
+          data: countries
+        },
+        series: [{
+          data: attackCounts
+        }]
+      });
+    }
+
+    // ====================================
+    // Main Initialization
+    // ====================================
+    async function initDashboard() {
+      // Check if configuration is set
+      if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+        showError('Please update the Supabase configuration in the HTML file.');
+        return;
+      }
+
+      try {
+        // Setup event listeners
+        setupEventListeners();
+
+        // Load initial data with default filters (all time)
+        await applyFilters();
+
+      } catch (error) {
+        showError(`Failed to load data: ${error.message}`);
+        console.error('Dashboard initialization error:', error);
+      }
+    }
+
+    // Start the dashboard when page loads
+    document.addEventListener('DOMContentLoaded', initDashboard);
+  </script>
+</body>
+</html>
