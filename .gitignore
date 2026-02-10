@@ -211,3 +211,8 @@ __marimo__/
 # Exclude raw logs and local data folders for security and performance
 data/
 *.csv
+*node_modules/
+
+# Cloudflare worker local secrets
+.dev.vars
+.dev.vars.*
