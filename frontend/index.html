@@ -11,8 +11,6 @@
   <!-- ECharts.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 
-  <!-- Supabase JS Client CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-900 text-gray-100">
   <!-- Header -->
@@ -32,10 +30,10 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Time Range Selector -->
         <div>
-          <label class="block text-gray-300 font-semibold mb-2">⏰ Time Range</label>
+          <label class="block text-gray-300 font-semibold mb-2">⏰ Time Range (Year 2013 March 3th to September 8th Only)</label>
           <div class="space-y-2">
-            <input type="datetime-local" id="startDate" class="w-full bg-gray-700 text-gray-100 rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:border-blue-400" placeholder="Start Date">
-            <input type="datetime-local" id="endDate" class="w-full bg-gray-700 text-gray-100 rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:border-blue-400" placeholder="End Date">
+            <input type="datetime-local" id="startDate" class="w-full bg-gray-700 text-gray-100 rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:border-blue-400" placeholder="Start Date" min="2013-03-03T21:53:00" max="2013-09-08T05:56:00" value="2013-03-03T21:53:00">
+            <input type="datetime-local" id="endDate" class="w-full bg-gray-700 text-gray-100 rounded-lg px-4 py-2 border border-gray-600 focus:outline-none focus:border-blue-400" placeholder="End Date" min="2013-03-03T21:53:00" max="2013-09-08T05:56:00" value="2013-09-08T05:56:00">
           </div>
         </div>
 
@@ -142,7 +140,7 @@
     <div id="errorMessage" class="hidden bg-red-900 border border-red-700 rounded-lg p-6 text-center">
       <p class="text-xl font-bold text-red-400 mb-2">⚠️ Error Loading Data</p>
       <p id="errorText" class="text-gray-300"></p>
-      <p class="text-gray-400 mt-4 text-sm">Please check your Supabase configuration in the browser console.</p>
+      <p class="text-gray-400 mt-4 text-sm">Please check your backend API configuration and ensure the worker is deployed.</p>
     </div>
   </main>
 
@@ -157,12 +155,10 @@
     // ====================================
     // Configuration
     // ====================================
-    // IMPORTANT: Replace these with your actual Supabase credentials
-    const SUPABASE_URL = '{{SUPABASE_URL}}';
-    const SUPABASE_PUBLISHABLE_KEY =  '{{SUPABASE_PUBLISHABLE_KEY}}';
-
-    // Initialize Supabase client
-    const supabase_client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    // Backend API URL - Update this with your deployed Cloudflare Worker URL
+    const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8787' 
+    : '{{API_URL}}';
 
     // Global variables
     let countriesBarChart = null;
@@ -192,38 +188,45 @@
     }
 
     function resetFilters() {
-      // Reset time range
-      document.getElementById('startDate').value = '';
-      document.getElementById('endDate').value = '';
+      // Reset time range to Year 2013 March 3th to September 8th only defaults
+      document.getElementById('startDate').value = '2013-03-03T21:53:00';
+      document.getElementById('endDate').value = '2013-09-08T05:56:00';
 
       // Reset risk levels
       document.getElementById('riskHigh').checked = true;
       document.getElementById('riskLow').checked = true;
       document.getElementById('riskUnknown').checked = true;
 
-      // Reapply with no filters
+      // Reapply with default filters
       applyFilters();
     }
 
     // ====================================
-    // Data Fetching (Using RPC Functions)
+    // Data Fetching (Using Backend API)
     // ====================================
     async function fetchDashboardStats(startTime, endTime) {
       try {
-        console.log('Fetching dashboard stats from RPC...');
+        console.log('Fetching dashboard stats from backend API...');
 
-        const { data, error } = await supabase_client
-          .rpc('get_dashboard_stats', {
+        const response = await fetch(`${API_BASE_URL}/api/stats`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
             start_ts: startTime,
             end_ts: endTime
-          });
+          })
+        });
 
-        if (error) {
-          throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch dashboard stats');
         }
 
+        const data = await response.json();
         console.log('Dashboard stats fetched:', data);
-        return data[0]; // RPC returns array with single row
+        return data[0]; // Backend returns array with single row
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
         throw error;
@@ -232,18 +235,25 @@
 
     async function fetchCountryDistribution(startTime, endTime) {
       try {
-        console.log('Fetching country distribution from RPC...');
+        console.log('Fetching country distribution from backend API...');
 
-        const { data, error } = await supabase_client
-          .rpc('get_country_distribution', {
+        const response = await fetch(`${API_BASE_URL}/api/countries`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
             start_ts: startTime,
             end_ts: endTime
-          });
+          })
+        });
 
-        if (error) {
-          throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch country distribution');
         }
 
+        const data = await response.json();
         console.log(`Country distribution fetched: ${data.length} countries`);
         return data;
       } catch (error) {
@@ -255,17 +265,27 @@
     // ====================================
     // Time Range Calculation
     // ====================================
+    function toLocalISOString(date) {
+      // Get the current timezone offset to deal with PST/PDT
+      const offsetInMinutes = date.getTimezoneOffset(); 
+      // Transform into ms
+      const offsetInMs = offsetInMinutes * 60000;
+      // Create a new date according to time offset
+      const localDate = new Date(date.getTime() - offsetInMs);
+      return localDate.toISOString();
+    }
+
     function getTimeRange() {
-      // Custom duration filter
+      // Custom duration filter - defaults to Year 2013 March 3th to September 8th only
       const startDateValue = document.getElementById('startDate').value;
       const endDateValue = document.getElementById('endDate').value;
 
-      const startTime = startDateValue ? new Date(startDateValue) : new Date('1970-01-01');
-      const endTime = endDateValue ? new Date(endDateValue) : new Date();
+      const startTime = startDateValue ? new Date(startDateValue) : new Date('2013-03-03T21:53:00');
+      const endTime = endDateValue ? new Date(endDateValue) : new Date('2013-09-08T05:56:00');
 
       return {
-        start: startTime.toISOString(),
-        end: endTime.toISOString()
+        start: toLocalISOString(startTime),
+        end: toLocalISOString(endTime)
       };
     }
 
@@ -629,8 +649,8 @@
     // ====================================
     async function initDashboard() {
       // Check if configuration is set
-      if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_PUBLISHABLE_KEY === 'SUPABASE_PUBLISHABLE_KEY') {
-        showError('Please update the Supabase configuration in the HTML file.');
+      if (API_BASE_URL === 'https://your-worker.your-subdomain.workers.dev') {
+        showError('Please update the API_BASE_URL with your deployed Cloudflare Worker URL in the HTML file.');
         return;
       }
 
@@ -638,7 +658,7 @@
         // Setup event listeners
         setupEventListeners();
 
-        // Load initial data with default filters (all time)
+        // Load initial data with default filters (Year 2013 March 3th to September 8th only)
         await applyFilters();
 
       } catch (error) {
