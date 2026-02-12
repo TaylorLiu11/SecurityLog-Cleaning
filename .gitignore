@@ -216,3 +216,7 @@ data/
 # Cloudflare worker local secrets
 .dev.vars
 .dev.vars.*
+
+# Cloudflare Wrangler Local State
+.wrangler/
+**/.wrangler/
