@@ -6,13 +6,13 @@ Core objectives:
 2. PII de-identification (IP masking)
 3. The use of Cloudflare Workers and Supabase
 4. Automated CI/CD workflow
-5. Collaborate with Claude Code
+5. Collaborate with Claude Code to create index.html
 ## Tech Stack
 - **Language**: Python 3.x
 - **Database**: Supabase (PostgreSQL)
-- **Serverless**: Cloudflare Workers
+- **Serverless**: Cloudflare Workers, Cloudflare Pages
 - **CI/CD**: GitHub Actions
-- **Data Processing**: re (Regex), pandas (if needed for analysis)
+- **Frontend**: Claude Code
 ## Code Style Guidelines
 - **Robustness**: Check for directory existence before file I/O using `os.path.exists`, using try/except to gracefully catch errors.
 - **Documentation**: Explain lines of code using detailed comments.
