@@ -30,6 +30,8 @@ jobs:
           workingDirectory: 'backend'
           secrets: |
             SUPABASE_PUBLISHABLE_KEY
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
 
   deploy-frontend:
     needs: deploy-backend
