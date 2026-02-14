@@ -29,11 +29,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: 'backend'
           secrets: |
-            SUPABASE_URL
             SUPABASE_PUBLISHABLE_KEY
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
 
   deploy-frontend:
     needs: deploy-backend
