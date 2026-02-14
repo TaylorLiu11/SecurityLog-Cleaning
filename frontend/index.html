@@ -265,15 +265,6 @@
     // ====================================
     // Time Range Calculation
     // ====================================
-    function toLocalISOString(date) {
-      // Get the current timezone offset to deal with PST/PDT
-      const offsetInMinutes = date.getTimezoneOffset(); 
-      // Transform into ms
-      const offsetInMs = offsetInMinutes * 60000;
-      // Create a new date according to time offset
-      const localDate = new Date(date.getTime() - offsetInMs);
-      return localDate.toISOString();
-    }
 
     function getTimeRange() {
       // Custom duration filter - defaults to Year 2013 March 3th to September 8th only
@@ -284,8 +275,8 @@
       const endTime = endDateValue ? new Date(endDateValue) : new Date('2013-09-08T05:56:00');
 
       return {
-        start: toLocalISOString(startTime),
-        end: toLocalISOString(endTime)
+        start: startTime.toLocaleString(),
+        end: endTime.toLocaleString()
       };
     }
 
