@@ -210,13 +210,14 @@ __marimo__/
 # ---- Project Specific Data ----
 # Exclude raw logs and local data folders for security and performance
 data/
-*.csv
-*node_modules/
+**.csv
+**/node_modules/
 
 # Cloudflare worker local secrets
-.dev.vars
-.dev.vars.*
+**/.dev.vars*
 
 # Cloudflare Wrangler Local State
-.wrangler/
 **/.wrangler/
+
+# Mac
+**/.DS_Store
