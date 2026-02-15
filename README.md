@@ -80,6 +80,7 @@ Create a `.dev.vars` file in the `backend/` directory to store local secrets:
 ```
 SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_URL=YOUR_SUPABASE_URL
+ACCESS_CONTROL_ALLOW_ORIGIN=YOUR_FRONTEND_ORIGIN
 ```
 
 ### 3. Installation
