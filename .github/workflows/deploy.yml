@@ -32,6 +32,7 @@ jobs:
             SUPABASE_PUBLISHABLE_KEY
         env:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          ACCESS_CONTROL_ALLOW_ORIGIN: ${{ vars.ACCESS_CONTROL_ALLOW_ORIGIN }}
 
   deploy-frontend:
     needs: deploy-backend

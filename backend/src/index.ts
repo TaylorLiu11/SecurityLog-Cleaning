@@ -7,7 +7,8 @@
 // 
 export interface Env {
   SUPABASE_URL: string,
-  SUPABASE_PUBLISHABLE_KEY: string;
+  SUPABASE_PUBLISHABLE_KEY: string,
+  ACCESS_CONTROL_ALLOW_ORIGIN: string
 }
 
 interface AnalyticsQuery {
@@ -25,8 +26,7 @@ export default {
     // By default, browsers block APIs coming from other origins (different domains)
     const corsHeaders = {
       // This allows any origins
-      // Todo: Change this to the frontend URL
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": env.ACCESS_CONTROL_ALLOW_ORIGIN,
       // 
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       // 
